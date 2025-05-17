@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv() 
 
-IMAGE_PATH = './image/'
 SAVE_DIR = "./result"
 
 def crop_image(image_path: str):
@@ -24,18 +23,13 @@ def crop_image(image_path: str):
   # 이미지 읽기
   image = cv2.imread(image_path)
 
-  
-  # alpha = 1.5  # 대비 (1.0 - 3.0)
-  # beta = 20    # 밝기 (0 - 100)
-
-  # image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
-
 
   coordinates_list = [
     (316, 326, 203, 49), # 체중
     (20, 506, 606, 44),  # 골격근량
     (19, 546, 609, 42),  # 체지방량
     (24, 724, 611, 46),  # 체지방률
+    (22, 679, 607, 46),  # bmi
   ]
   
   cropped_paths = []
@@ -52,39 +46,17 @@ def crop_image(image_path: str):
     cropped_paths.append(save_path)
 
     # 크롭된 이미지 시각화 (옵션)
-    plt.subplot(1, len(coordinates_list), idx + 1)
-    plt.imshow(cv2.cvtColor(cropped_img, cv2.COLOR_BGR2RGB))
-    plt.title(f"Crop {idx + 1}")
-    plt.axis('off')
+  #   plt.subplot(1, len(coordinates_list), idx + 1)
+  #   plt.imshow(cv2.cvtColor(cropped_img, cv2.COLOR_BGR2RGB))
+  #   plt.title(f"Crop {idx + 1}")
+  #   plt.axis('off')
 
-  plt.tight_layout()
-  plt.show()  
+  # plt.tight_layout()
+  # plt.show()  
 
   
   return cropped_paths
   
-
-def preprocess_image(image):
-    """
-    전처리: 그레이스케일 및 이진화
-
-    Args:
-    - image (numpy.ndarray): 이미지 배열
-
-    Returns:
-    - processed_image (numpy.ndarray): 전처리된 이미지
-    """
-    # Grayscale 변환
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Adaptive Thresholding
-    processed = cv2.adaptiveThreshold(
-        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
-    )
-    
-    cv2.imwrite('./result/processed.png', processed)
-
-    return processed
   
 def extract_text(image_paths: list):
   reader = easyocr.Reader(['ko','en'], gpu=False) 
@@ -98,14 +70,28 @@ def extract_text(image_paths: list):
       extracted_texts = [text for _, text, _ in results]
 
       corrected_text = extracted_texts[-1].replace(",", ".")
+      
+      if (extracted_texts[0] == "체중"):
+        ocr_results['weight'] = corrected_text
 
-      ocr_results[extracted_texts[0]] = corrected_text
+      if (extracted_texts[0] == "골격근량"):
+        ocr_results['muscleMass'] = corrected_text
+              
+      if (extracted_texts[0] == "체지방량"):
+        ocr_results['fatMass'] = corrected_text
+        
+      if (extracted_texts[0] == "체지방률"):
+        ocr_results['bodyFatPercentage'] = corrected_text
+        
+      if (extracted_texts[0] == "BMI"):
+        ocr_results['bmi'] = corrected_text
+
 
   print('ocr_results', ocr_results)
   return ocr_results
 
 
-def delete_cropped_images(directory: str = 'result', prefix: str = "crop_") -> None:
+def delete_cropped_images(directory: str = SAVE_DIR, prefix: str = "crop_") -> None:
   """
   특정 폴더 내에서 지정된 접두사(prefix)로 시작하는 파일들을 삭제
 
@@ -132,7 +118,7 @@ def delete_cropped_images(directory: str = 'result', prefix: str = "crop_") -> N
   print(f"삭제된 파일들: {deleted_files}")
   
   
-def perform_ocr():
+def perform_ocr(file_path: str) -> dict:
   """
   EasyOCR을 이용하여 이미지에서 텍스트를 추출하고 쉼표를 마침표로 교체하여 반환
 
@@ -142,7 +128,16 @@ def perform_ocr():
   Returns:
   - dict: {"original": "64,4", "corrected": "64.4"}
   """
-  cropped_paths = crop_image(IMAGE_PATH + 'inbody2.jpeg')
   
-  return extract_text(cropped_paths)
-
+  try:
+    cropped_paths = crop_image(file_path) 
+    
+    return extract_text(cropped_paths)
+  
+  except:
+    print('perform_ocr Failed')
+    return
+  
+  finally:
+    delete_cropped_images()
+  
