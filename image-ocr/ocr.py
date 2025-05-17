@@ -130,11 +130,19 @@ def delete_cropped_images(directory: str = 'result', prefix: str = "crop_") -> N
               print(f"파일 삭제 오류: {file_path} - {e}")
 
   print(f"삭제된 파일들: {deleted_files}")
+  
+  
+def perform_ocr():
+  """
+  EasyOCR을 이용하여 이미지에서 텍스트를 추출하고 쉼표를 마침표로 교체하여 반환
 
-if __name__ == "__main__":
-    cropped_paths = crop_image(IMAGE_PATH + 'inbody2.jpeg')
-    
-    extract_text(cropped_paths)
-    
-    delete_cropped_images()
+  Args:
+  - image_path (str): 이미지 파일 경로
+
+  Returns:
+  - dict: {"original": "64,4", "corrected": "64.4"}
+  """
+  cropped_paths = crop_image(IMAGE_PATH + 'inbody2.jpeg')
+  
+  return extract_text(cropped_paths)
 
