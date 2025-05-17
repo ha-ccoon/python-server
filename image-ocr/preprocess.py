@@ -1,13 +1,10 @@
 import cv2
 import os
-from PIL import Image
-import base64
-import io
+import easyocr
 
 import matplotlib.pyplot as plt
 from openai import OpenAI
 from dotenv import load_dotenv
-
 
 load_dotenv() 
 
@@ -28,6 +25,7 @@ def crop_image(image_path: str, coordinates: tuple):
     """
     # 이미지 읽기
     image = cv2.imread(image_path)
+  
 
     # 좌표 추출
     x, y, w, h = coordinates
@@ -35,44 +33,52 @@ def crop_image(image_path: str, coordinates: tuple):
     # 영역 잘라내기
     cropped_image = image[y:y + h, x:x + w]
     
+    
     plt.figure(figsize=(6, 6))
     plt.imshow(cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB))
-    plt.title(f"Cropped Image - {cropped_image}")
     plt.axis('off')
-    plt.show()
+    plt.show()    
     
-    pil_img = Image.fromarray(cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB))
+    cv2.imwrite('./result/weight_value.png', cropped_image)
+    
+    return cropped_image
+  
 
+def preprocess_image(image):
+    """
+    전처리: 그레이스케일 및 이진화
 
-    return pil_img
+    Args:
+    - image (numpy.ndarray): 이미지 배열
 
+    Returns:
+    - processed_image (numpy.ndarray): 전처리된 이미지
+    """
+    # Grayscale 변환
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-def encode_image(image):
-    """PIL 이미지 객체를 base64로 인코딩"""
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode('utf-8')
+    # Adaptive Thresholding
+    processed = cv2.adaptiveThreshold(
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
+    )
+    
+    cv2.imwrite('./result/weight_label_processed.png', processed)
 
+    return processed
 
 
 if __name__ == "__main__":
-    print("This is being run directly!")
-    cropped = crop_image(IMAGE_PATH + 'inbody.original.jpeg', (316, 326, 203, 49))
+    cropped = crop_image(IMAGE_PATH + 'inbody2.jpeg', (20, 506, 606, 44))
+
+    processed = preprocess_image(cropped)
     
-    encode_image = encode_image(cropped)
+    reader = easyocr.Reader(['ko','en']) 
+    result = reader.readtext('./result/weight_value.png')
     
-    response = client.responses.create(
-      model="gpt-4.1-mini",
-      input=[{
-          "role": "user",
-          "content": [
-              {"type": "input_text", "text": "체중 값을 가져와줘"},
-              {
-                  "type": "input_image",
-                  "image_url": f"data:image/jpeg;base64,{encode_image}",
-              },
-          ],
-      }],
-    )
+    for bbox, text, confidence in result:
+      print(f"Text: {text}, Confidence: {confidence}")
     
-    print(response.output_text)
+    print('result[0]', result[0])
+    print('result[0][1]', result[0][1])
+    
+
