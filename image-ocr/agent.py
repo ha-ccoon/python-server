@@ -97,7 +97,7 @@ def analysis_instruction(previous: InBodyData, current: InBodyData) -> str:
 def translate_instruction():
   prompt_template = """
   - You are a translation expert specializing in English to Korean. 
-  - Transform the provided report into a well-structured, professional Korean report, maintaining the original format and structure while ensuring clarity and natural flow.
+  - Translate the provided report into clear, easy-to-understand Korean for gym members while maintaining the original structure and format.
   """
   
   return prompt_template
