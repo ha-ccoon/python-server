@@ -6,7 +6,10 @@ import os
 from ocr import perform_ocr
 from dotenv import load_dotenv
 
-# .env 파일 로드
+from data_type import AnalysisRequest
+from agent import analyze_data
+
+
 load_dotenv()
 
 app = FastAPI()
@@ -55,3 +58,18 @@ async def ocr_endpoint(file: UploadFile = File(...)):
         # 파일 삭제 (메모리 관리)
         if os.path.exists(file_path):
             os.remove(file_path)
+
+
+@app.post("/analysis")
+async def analysis_endpoint(request: AnalysisRequest):
+    """
+    직전 인바디 데이터와 현재 인바디 데이터를 비교 분석하고 레포트를 반환 하는 엔드포인트
+    """
+    try:
+        result = analyze_data(request["previous"], request["current"])
+
+        # 결과 반환
+        return JSONResponse(content=result)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

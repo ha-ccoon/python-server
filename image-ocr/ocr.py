@@ -5,6 +5,10 @@ import os
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 
+from data_type import ExtractText
+from agent import analyze_data
+
+
 load_dotenv() 
 
 SAVE_DIR = "./result"
@@ -58,11 +62,11 @@ def crop_image(image_path: str):
   return cropped_paths
   
   
-def extract_text(image_paths: list):
+def extract_text(image_paths: list) -> ExtractText:
   reader = easyocr.Reader(['ko','en'], gpu=False) 
-  ocr_results = {}
-      
   
+  ocr_results: ExtractText = {}
+      
   for path in image_paths:
       results = reader.readtext(path)
 
@@ -118,7 +122,7 @@ def delete_cropped_images(directory: str = SAVE_DIR, prefix: str = "crop_") -> N
   print(f"삭제된 파일들: {deleted_files}")
   
   
-def perform_ocr(file_path: str) -> dict:
+def perform_ocr(file_path: str) -> ExtractText:
   """
   EasyOCR을 이용하여 이미지에서 텍스트를 추출하고 쉼표를 마침표로 교체하여 반환
 
@@ -132,11 +136,14 @@ def perform_ocr(file_path: str) -> dict:
   try:
     cropped_paths = crop_image(file_path) 
     
-    return extract_text(cropped_paths)
+    extracted_texts = extract_text(cropped_paths)
+    
+    return extracted_texts
   
-  except:
-    print('perform_ocr Failed')
-    return
+  except Exception as e:
+    print(f"perform_ocr Failed: {e}")
+
+    return e
   
   finally:
     delete_cropped_images()
